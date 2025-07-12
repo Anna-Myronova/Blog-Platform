@@ -47,6 +47,8 @@ export const createArticle = async (
     await client.query("ROLLBACK");
     console.error("Error creating article:", err);
     throw err;
+  } finally {
+    client.release();
   }
 };
 
@@ -69,7 +71,7 @@ export const getArticlesByUserId = async (
   offset: number
 ) => {
   try {
-    const finalLimit = Math.max(Math.min(limit, 20), 1);
+    const finalLimit = Math.max(Math.min(limit, 10), 1);
     const result = await pool.query(
       `SELECT * FROM articles
        WHERE author_id = $1

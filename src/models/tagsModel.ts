@@ -28,9 +28,3 @@ export const getTagByName = async (name: string, client: PoolClient) => {
   const result = await client.query("SELECT * FROM tags WHERE name = $1;", [name]);
   return result.rows[0] || null;
 };
-
-// Table "public.tags"
-//  Column |  Type   | Collation | Nullable |             Default
-// --------+---------+-----------+----------+----------------------------------
-//  id     | integer |           | not null | nextval('tags_id_seq'::regclass)
-//  name   | text    |           | not null |

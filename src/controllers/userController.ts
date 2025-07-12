@@ -1,6 +1,5 @@
 import { Request, Response } from "express";
 import * as UserModel from "../models/userModel";
-import { email } from "zod";
 
 export const getUserById = async (req: Request, res: Response) => {
   try {
@@ -54,9 +53,10 @@ export const updateUser = async (req: Request, res: Response) => {
       return;
     }
     if (!username || !email) {
-      return res
+      res
         .status(400)
         .json({ message: "Username and email are required" });
+        return;
     }
     const updatedUser = await UserModel.updateUser(id, username, email);
 

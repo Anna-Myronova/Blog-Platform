@@ -2,7 +2,6 @@ import { pool } from "../db";
 
 export const likeArticle = async (userId: number, articleId: number) => {
   try {
-    
     if (await hasLiked(userId, articleId)) {
       throw new Error("User already liked this article.");
     }
@@ -10,6 +9,22 @@ export const likeArticle = async (userId: number, articleId: number) => {
       "INSERT INTO likes (user_id, article_id) VALUES ($1, $2) ON CONFLICT DO NOTHING RETURNING *;",
       [userId, articleId]
     );
+
+    const tagsId = await pool.query(
+      `SELECT tag_id FROM article_tags WHERE article_id = $1`,
+      [articleId]
+    );
+
+    for (let row of tagsId.rows) {
+      await pool.query(
+        `INSERT INTO user_interests (user_id, tag_id, priority)
+         VALUES ($1, $2, 1)
+         ON CONFLICT (user_id, tag_id)
+         DO UPDATE SET priority = user_interests.priority + 1`,
+        [userId, row.tag_id]
+      );
+    }
+
     return result.rows[0];
   } catch (err) {
     console.error(
@@ -22,8 +37,7 @@ export const likeArticle = async (userId: number, articleId: number) => {
 
 export const unlikeArticle = async (userId: number, articleId: number) => {
   try {
-
-    if (!( await hasLiked(userId, articleId))) {
+    if (!(await hasLiked(userId, articleId))) {
       throw new Error("User didn't like this article.");
     }
 
@@ -31,6 +45,21 @@ export const unlikeArticle = async (userId: number, articleId: number) => {
       "DELETE FROM likes WHERE user_id = $1 AND article_id = $2 RETURNING *;",
       [userId, articleId]
     );
+
+        const tagsId = await pool.query(
+      `SELECT tag_id FROM article_tags WHERE article_id = $1`,
+      [articleId]
+    );
+
+    for (let row of tagsId.rows) {
+      await pool.query(
+        `UPDATE user_interests
+         SET priority = GREATEST(priority - 1, 0)
+         WHERE user_id = $1 AND tag_id = $2`,
+        [userId, row.tag_id]
+      );
+    }
+
     return result.rows[0];
   } catch (err) {
     console.error(

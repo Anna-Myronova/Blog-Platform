@@ -74,7 +74,7 @@ export const getArticlesByUserId = async (req: Request, res: Response) => {
     }
 
     const limit = req.query.limit ? Number(req.query.limit) : 10;
-    const offset = req.query.offset ? Number(req.query.offset) : 0; 
+    const offset = req.query.offset ? Number(req.query.offset) : 0;
 
     if (isNaN(limit) || isNaN(offset)) {
       res.status(400).json({ error: "Limit and offset must be numbers" });
@@ -83,11 +83,10 @@ export const getArticlesByUserId = async (req: Request, res: Response) => {
 
     const articles = await ArticleModel.getArticlesByUserId(id, limit, offset);
 
-    if (articles.length === 0) {
-      res.status(404).json({ message: "No articles found for this user" });
-      return;
-    }
-    res.status(200).json({ message: `Found ${articles.length} articles:`, articles });
+    res.status(200).json({
+      total: articles.length,
+      articles,
+    });
   } catch (err) {
     console.error(
       "Error finding articles in getArticlesByUserId controller:",

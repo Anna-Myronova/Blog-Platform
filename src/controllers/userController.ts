@@ -1,9 +1,6 @@
 import { Request, Response } from "express";
 import * as UserModel from "../models/userModel";
-import {
-  getUserInterestsCount,
-  setStartPriority,
-} from "../models/userInterestsModel";
+import * as UserInterests from "../models/userInterestsModel";
 
 export const getUserById = async (req: Request, res: Response) => {
   try {
@@ -81,7 +78,9 @@ export const getMe = async (req: Request, res: Response) => {
       return res.status(401).json({ message: "Unauthorized" });
     }
 
-    const hasSelectedInterests = await getUserInterestsCount(userId);
+    const hasSelectedInterests = await UserInterests.getUserInterestsCount(
+      userId
+    );
     res.status(200).json({
       id: userId,
       hasSelectedInterests: hasSelectedInterests,
@@ -107,11 +106,42 @@ export const chooseInterests = async (req: Request, res: Response) => {
       return;
     }
 
-    const result = await setStartPriority(interests, userId);
+    const result = await UserInterests.setStartPriority(interests, userId);
 
     res.status(201).json({ message: "Interests set", interests: result });
   } catch (err) {
     console.error("Error in chooseInterests controller:", err);
+    res.status(500).json({ error: "Internal server error" });
+  }
+};
+
+export const getFeed = async (req: Request, res: Response) => {
+  try {
+    const userId = req.user?.id!;
+
+    const limit = req.query.limit ? Number(req.query.limit) : 10;
+    const offset = req.query.offset ? Number(req.query.offset) : 0;
+
+    if (isNaN(limit) || isNaN(offset)) {
+      res.status(400).json({ error: "Limit and offset must be numbers" });
+      return;
+    }
+
+    const feed = await UserInterests.getFeed(userId, limit, offset);
+
+    if (feed.length === 0) {
+      res
+        .status(200)
+        .json({ feed: [], message: "No articles for your interests yet." });
+      return;
+    }
+
+    res.status(200).json({
+      count: feed.length,
+      articles: feed,
+    });
+  } catch (err) {
+    console.error("Error in getFeed controller:", err);
     res.status(500).json({ error: "Internal server error" });
   }
 };

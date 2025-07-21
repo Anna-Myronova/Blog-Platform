@@ -17,12 +17,12 @@ export const createComment = async (
   }
 };
 
-export const getCommentById = async (id: number) => {
+export const getCommentById = async (userId: number, commentId: number) => {
   // public func
   try {
     const result = await pool.query(
       "SELECT * FROM comments WHERE user_id = $1 AND id = $2",
-      [id]
+      [userId, commentId]
     );
     return result.rows[0] || null;
   } catch (err) {

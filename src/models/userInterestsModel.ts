@@ -61,3 +61,37 @@ export const getUserInterestsCount = async (userId: number) => {
     throw err;
   }
 };
+
+export const getFeed = async (
+  userId: number,
+  limit: number,
+  offset: number
+) => {
+  try {
+    const finalLimit = Math.max(Math.min(limit, 10), 1);
+
+    const tags = await pool.query(
+      `SELECT tags.id FROM user_interests
+      WHERE user_id = $1
+      ORDER BY priority DESC
+      `,
+      [userId]
+    );
+
+    const tagIds = tags.rows.map((row) => row.id);
+
+    const result = await pool.query(
+      `SELECT DISTINCT articles.*
+      FROM articles
+      JOIN article_tags ON articles.id = article_tags.article_id
+      WHERE article_tags.tag_id = ANY($1)
+      ORDER BY articles.created_at DESC
+      LIMIT $2 OFFSET $3;`,
+      [tagIds, finalLimit, offset]
+    );
+    return result.rows;
+  } catch (err) {
+    console.error("Error getting feed:", err);
+    throw err;
+  }
+};

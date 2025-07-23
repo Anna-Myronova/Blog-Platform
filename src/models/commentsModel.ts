@@ -64,3 +64,20 @@ export const getCommentsByArticleId = async (
     throw err;
   }
 };
+
+export const updateCommentById = async (
+  newContent: string,
+  commentId: number,
+  userId: number
+) => {
+  try {
+    const result = await pool.query(
+      "UPDATE comments SET content = $1 WHERE id = $2 AND user_id = $3 RETURNING *",
+      [newContent, commentId, userId]
+    );
+    return result.rows[0];
+  } catch (err) {
+    console.error("Error updating comment:", err);
+    throw err;
+  }
+};

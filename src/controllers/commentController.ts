@@ -102,3 +102,40 @@ export const getCommentsByArticleId = async (req: Request, res: Response) => {
     res.status(500).json({ message: "Internal server error" });
   }
 };
+
+export const updateCommentById = async (req: Request, res: Response) => {
+  try {
+    const userId = req.user?.id!;
+    const commentId = Number(req.params.id);
+    const { newContent } = req.body;
+
+    if (isNaN(commentId)) {
+      res.status(400).json({ error: "Invalid ID" });
+      return;
+    }
+
+    if (!newContent || newContent.trim() === "") {
+      res.status(400).json({ error: "Content is required" });
+      return;
+    }
+
+    const updatedComment = await CommentsModel.updateCommentById(
+      newContent,
+      commentId,
+      userId
+    );
+
+    if (!updatedComment) {
+      res.status(404).json({ message: "Comment is not found" });
+      return;
+    }
+
+    res.status(200).json({ message: "Comment is updated", updatedComment });
+  } catch (err) {
+    console.error(
+      "Error updating comment in updateCommentById controller:",
+      err
+    );
+    res.status(500).json({ message: "Internal server error" });
+  }
+};

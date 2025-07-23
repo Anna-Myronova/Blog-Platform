@@ -1,5 +1,6 @@
 import { Request, Response } from "express";
 import * as ArticleModel from "../models/articlesModel";
+import * as likesModel from "../models/likesModel";
 import { z } from "zod";
 import { title } from "process";
 
@@ -92,6 +93,106 @@ export const getArticlesByUserId = async (req: Request, res: Response) => {
       "Error finding articles in getArticlesByUserId controller:",
       err
     );
+    res.status(500).json({ message: "Internal server error" });
+  }
+};
+
+export const updateArticleById = async (req: Request, res: Response) => {
+  try {
+    const articleId = Number(req.params.id);
+    const userId = req.user?.id!;
+    const { newTitle, newContent } = req.body;
+
+    if (isNaN(articleId)) {
+      res.status(400).json({ error: "Invalid ID" });
+      return;
+    }
+
+    if (
+      !newContent ||
+      !newTitle ||
+      newContent.trim() === "" ||
+      newTitle.trim() === ""
+    ) {
+      res.status(400).json({ error: "Content and title are required" });
+      return;
+    }
+
+    const updatedArticle = await ArticleModel.updateArticleById(
+      newTitle,
+      newContent,
+      articleId,
+      userId
+    );
+
+    if (!updatedArticle) {
+      res.status(404).json({ message: "Article not found" });
+      return;
+    }
+
+    res.status(200).json({ message: "Article updated", updatedArticle });
+  } catch (err) {
+    console.error(
+      "Error updating article in updateArticleById controller:",
+      err
+    );
+    res.status(500).json({ message: "Internal server error" });
+  }
+};
+
+export const likeArticle = async (req: Request, res: Response) => {
+  try {
+    const userId = req.user?.id!;
+    const articleId = Number(req.params.id);
+
+    if (isNaN(articleId)) {
+      res.status(400).json({ error: "Invalid ID" });
+      return;
+    }
+
+    const article = await ArticleModel.getArticleByIdWithoutUserCheck(
+      articleId
+    );
+    if (!article) {
+      res.status(404).json({ error: "Article not found" });
+      return;
+    }
+    await likesModel.likeArticle(userId, articleId);
+
+    res.status(200).json({ message: "Article liked" });
+  } catch (err) {
+    console.error("Error liking article in likeArticle controller:", err);
+    res.status(500).json({ message: "Internal server error" });
+  }
+};
+
+export const unlikeArticle = async (req: Request, res: Response) => {
+  try {
+    const userId = req.user?.id!;
+    const articleId = Number(req.params.id);
+
+    if (isNaN(articleId)) {
+      res.status(400).json({ error: "Invalid ID" });
+      return;
+    }
+
+    const article = await ArticleModel.getArticleByIdWithoutUserCheck(
+      articleId
+    );
+    if (!article) {
+      res.status(404).json({ error: "Article not found" });
+      return;
+    }
+    const unlikedArticle = await likesModel.unlikeArticle(userId, articleId);
+
+    if (!unlikedArticle) {
+      res.status(400).json({ error: "Article was not liked before" });
+      return;
+    }
+
+    res.status(200).json({ message: "Article unliked" });
+  } catch (err) {
+    console.error("Error unliking article in likeArticle controller:", err);
     res.status(500).json({ message: "Internal server error" });
   }
 };

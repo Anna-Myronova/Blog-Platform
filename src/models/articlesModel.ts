@@ -1,3 +1,4 @@
+import { callbackify } from "util";
 import { pool } from "../db";
 import { createTag, getTagByName } from "./tagsModel";
 import { PoolClient } from "pg";
@@ -95,6 +96,37 @@ export const deleteArticleById = async (userId: number, id: number) => {
     return result.rows[0] || null;
   } catch (err) {
     console.error("Error deleting article:", err);
+    throw err;
+  }
+};
+
+export const updateArticleById = async (
+  title: string,
+  content: string,
+  articleId: number,
+  userId: number
+) => {
+  try {
+    const result = await pool.query(
+      "UPDATE articles SET title = $1, content = $2 WHERE id = $3 AND author_id = $4 RETURNING *;",
+      [title, content, articleId, userId]
+    );
+
+    return result.rows[0];
+  } catch (err) {
+    console.error("Error updating article:", err);
+    throw err;
+  }
+};
+
+export const getArticleByIdWithoutUserCheck = async (id: number) => {
+  try {
+    const result = await pool.query("SELECT * FROM articles WHERE id = $1;", [
+      id,
+    ]);
+    return result.rows[0] || null;
+  } catch (err) {
+    console.error("Error finding article:", err);
     throw err;
   }
 };

@@ -2,7 +2,7 @@ import cron from "node-cron";
 import { pool } from "./db";
 
 export const startEachTwoMinutesPriorityDecay = () => {
-  cron.schedule("*/2 * * * *", async () => {
+  cron.schedule("0 0 */3 * *", async () => {
     console.log("Running each-two-day priority decay...");
     try {
       await pool.query(

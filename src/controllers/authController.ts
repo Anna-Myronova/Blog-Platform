@@ -5,13 +5,12 @@ import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 import * as UserModel from "../models/userModel";
 import { JWTPayload } from "../types/typeJWTPayload";
-
+import dotenv from "dotenv";
+dotenv.config();
 const registerSchema = z.object({
   email: z.string().email({ message: "Invalid email address" }),
   password: z.string().min(6, "Password must be at least 6 characters long"),
-  username: z
-    .string()
-    .min(3, "Username must be at least 3 characters")
+  username: z.string().min(3, "Username must be at least 3 characters"),
 });
 
 const loginSchema = z.object({
@@ -47,7 +46,11 @@ export const register = async (req: Request, res: Response) => {
     const hashedPassword = await hashPassword(password);
     const newUser = await UserModel.createUser(username, email, hashedPassword);
     const token = jwt.sign(
-      { id: newUser.id, email: newUser.email, username: newUser.username } as JWTPayload,
+      {
+        id: newUser.id,
+        email: newUser.email,
+        username: newUser.username,
+      } as JWTPayload,
       process.env.JWT_SECRET!
     );
 
@@ -71,10 +74,8 @@ export const login = async (req: Request, res: Response) => {
     const { email, password } = req.body;
 
     if (!email || !password) {
-       res
-        .status(400)
-        .json({ message: "Email and password are required" });
-        return;
+      res.status(400).json({ message: "Email and password are required" });
+      return;
     }
 
     const existingUser = await UserModel.getUserByEmail(email);
@@ -84,7 +85,7 @@ export const login = async (req: Request, res: Response) => {
       return;
     }
 
-    if (!(await bcrypt.compare(password, existingUser.password))) {
+    if (!(await bcrypt.compare(password, existingUser.password_hash))) {
       res.status(401).json({ message: "Email or password is not correct" });
       return;
     }
@@ -95,14 +96,18 @@ export const login = async (req: Request, res: Response) => {
     }
 
     const token = jwt.sign(
-      { id: existingUser.id, email: existingUser.email, username: existingUser.username } as JWTPayload,
+      {
+        id: existingUser.id,
+        email: existingUser.email,
+        username: existingUser.username,
+      } as JWTPayload,
       jwtSecret,
-      { expiresIn: "15m" }
+      { expiresIn: "1h" }
     );
 
     res.status(200).json({ token });
   } catch (error) {
     console.error("Error in login controller:", error);
-    res.status(500).json({ message: "Internal Server Error" });
+    res.status(500).json({ message: "Internal Server Error", error });
   }
 };

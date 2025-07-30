@@ -87,16 +87,29 @@ export const getArticlesByUserId = async (
   }
 };
 
-export const deleteArticleById = async (userId: number, id: number) => {
+export const deleteArticleById = async (userId: number, articleId: number) => {
+  const client = await pool.connect();
   try {
-    const result = await pool.query(
+    await client.query("BEGIN");
+
+    await client.query("DELETE FROM article_tags WHERE article_id = $1", [
+      articleId,
+    ]);
+
+    const result = await client.query(
       "DELETE FROM articles WHERE author_id = $1 AND id = $2 RETURNING *;",
-      [userId, id]
+      [userId, articleId]
     );
+
+    await client.query("COMMIT");
+
     return result.rows[0] || null;
   } catch (err) {
+    await client.query("ROLLBACK");
     console.error("Error deleting article:", err);
     throw err;
+  } finally {
+    client.release();
   }
 };
 

@@ -78,3 +78,19 @@ export const hasLiked = async (userId: number, articleId: number) => {
 
   return (result.rowCount ?? 0) > 0;
 };
+
+export const countTotalLikes = async (articleId: number) => {
+  try {
+    const totalSum = await pool.query(
+      "SELECT COUNT(*) FROM likes WHERE article_id = $1;", [articleId]
+    );
+
+    return totalSum;
+  } catch (err) {
+        console.error(
+      `Error counting total likes`,
+      err
+    );
+    throw err;
+  }
+}

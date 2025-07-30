@@ -1,3 +1,4 @@
+import { noUnrecognized } from "zod/v3";
 import { pool } from "../db";
 
 export const createComment = async (
@@ -51,6 +52,13 @@ export const getCommentsByArticleId = async (
 ) => {
   try {
     const finalLimit = Math.max(Math.min(limit, 20), 1);
+
+    const countResult = await pool.query(
+      `SELECT COUNT(*) FROM comments WHERE article_id = $1;`,
+      [articleId]
+    );
+    const total = parseInt(countResult.rows[0].count, 10);
+
     const result = await pool.query(
       `SELECT * FROM comments
        WHERE article_id = $1
@@ -78,6 +86,36 @@ export const updateCommentById = async (
     return result.rows[0];
   } catch (err) {
     console.error("Error updating comment:", err);
+    throw err;
+  }
+};
+
+export const checkIfUserIsAuthorComment = async (commentId: number) => {
+  try {
+    const result = await pool.query(
+      "SELECT user_id FROM comments WHERE id = $1",
+      [commentId]
+    );
+
+    if (result.rows.length === 0) return null;
+
+    return result.rows[0].user_id;
+  } catch (err) {
+    console.error("Error checking if user is author of the comment:", err);
+    throw err;
+  }
+};
+
+export const countTotalCommentsByArticleId = async (articleId: number) => {
+  try {
+    const totalSum = await pool.query(
+      "SELECT COUNT(*) FROM comments WHERE article_id = $1;",
+      [articleId]
+    );
+
+    return totalSum;
+  } catch (err) {
+    console.error(`Error counting total comments`, err);
     throw err;
   }
 };

@@ -71,6 +71,7 @@ export const deleteCommentById = async (req: Request, res: Response) => {
 export const getCommentsByArticleId = async (req: Request, res: Response) => {
   try {
     const articleId = Number(req.params.id);
+
     if (isNaN(articleId)) {
       res.status(400).json({ error: "Invalid ID" });
       return;
@@ -90,8 +91,11 @@ export const getCommentsByArticleId = async (req: Request, res: Response) => {
       offset
     );
 
+    const total = (await CommentsModel.countTotalCommentsByArticleId(articleId))
+      .rows;
+
     res.status(200).json({
-      total: comments.length,
+      total: total,
       comments,
     });
   } catch (err) {
@@ -108,6 +112,15 @@ export const updateCommentById = async (req: Request, res: Response) => {
     const userId = req.user?.id!;
     const commentId = Number(req.params.id);
     const { newContent } = req.body;
+    const commentAuthorId = await CommentsModel.checkIfUserIsAuthorComment(
+      commentId
+    );
+
+    if (userId !== commentAuthorId) {
+      res.status(400).json({ error: "You are not the author of the commment" });
+      return;
+    }
+
 
     if (isNaN(commentId)) {
       res.status(400).json({ error: "Invalid ID" });

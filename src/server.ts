@@ -1,6 +1,7 @@
 import app from "./app";
 import { pool } from "./db";
-import dotenv from "dotenv";
+import dotenv from 'dotenv';
+dotenv.config();
 import { startEachTwoMinutesPriorityDecay } from "./cronJobs";
 
 const PORT = process.env.SERVER_PORT ? Number(process.env.SERVER_PORT) : 3000;

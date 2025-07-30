@@ -1,6 +1,7 @@
 import { Request, Response } from "express";
 import * as ArticleModel from "../models/articlesModel";
 import * as likesModel from "../models/likesModel";
+import * as CommentsModel from "../models/commentsModel"
 import { z } from "zod";
 import { title } from "process";
 
@@ -31,7 +32,7 @@ export const createArticle = async (req: Request, res: Response) => {
 
     res
       .status(201)
-      .json({ message: "Article created successfully", newArticle });
+      .json({ message: "Article created successfully", newArticle, tags });
   } catch (err) {
     console.error("Error creating article in createArticle controller:", err);
     res.status(500).json({ message: "Internal server error" });
@@ -153,13 +154,20 @@ export const likeArticle = async (req: Request, res: Response) => {
     const article = await ArticleModel.getArticleByIdWithoutUserCheck(
       articleId
     );
+    
     if (!article) {
       res.status(404).json({ error: "Article not found" });
       return;
     }
+ 
     await likesModel.likeArticle(userId, articleId);
 
-    res.status(200).json({ message: "Article liked" });
+
+    const totalLikes = (await likesModel.countTotalLikes(articleId)).rows;
+
+    res.status(200).json({
+      totalLikes: totalLikes,
+    });
   } catch (err) {
     console.error("Error liking article in likeArticle controller:", err);
     res.status(500).json({ message: "Internal server error" });

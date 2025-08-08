@@ -5,8 +5,10 @@ import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 import * as UserModel from "../models/userModel";
 import { JWTPayload } from "../types/typeJWTPayload";
+import { generateAccessToken, generateRefreshToken } from "../utils/jwt";
 import dotenv from "dotenv";
 dotenv.config();
+
 const registerSchema = z.object({
   email: z.string().email({ message: "Invalid email address" }),
   password: z.string().min(6, "Password must be at least 6 characters long"),
@@ -32,7 +34,7 @@ export const register = async (req: Request, res: Response) => {
       return;
     }
 
-    const { username, email, password } = req.body;
+    const { username, email, password } = result.data;
 
     const existingUser = await UserModel.getUserByEmail(email);
 
@@ -45,16 +47,19 @@ export const register = async (req: Request, res: Response) => {
 
     const hashedPassword = await hashPassword(password);
     const newUser = await UserModel.createUser(username, email, hashedPassword);
-    const token = jwt.sign(
-      {
-        id: newUser.id,
-        email: newUser.email,
-        username: newUser.username,
-      } as JWTPayload,
-      process.env.JWT_SECRET!
-    );
 
-    res.status(201).json({ newUser, token });
+    const payload: JWTPayload = {
+      id: newUser.id,
+      email: newUser.email,
+      username: newUser.username,
+    };
+
+    const accessToken = generateAccessToken(payload);
+    const refreshToken = generateRefreshToken(payload);
+
+    await UserModel.saveRefreshToken(newUser.id, refreshToken);
+
+    res.status(200).json({ accessToken, refreshToken });
   } catch (error) {
     console.error("Error in register controller:", error);
     res.status(500).json({ message: "Internal Server Error" });
@@ -71,7 +76,7 @@ export const login = async (req: Request, res: Response) => {
       return;
     }
 
-    const { email, password } = req.body;
+    const { email, password } = result.data;
 
     if (!email || !password) {
       res.status(400).json({ message: "Email and password are required" });
@@ -95,19 +100,20 @@ export const login = async (req: Request, res: Response) => {
       throw new Error("JWT_SECRET is not defined in environment variables");
     }
 
-    const token = jwt.sign(
-      {
-        id: existingUser.id,
-        email: existingUser.email,
-        username: existingUser.username,
-      } as JWTPayload,
-      jwtSecret,
-      { expiresIn: "1h" }
-    );
+    const payload: JWTPayload = {
+      id: existingUser.id,
+      email: existingUser.email,
+      username: existingUser.username,
+    };
 
-    res.status(200).json({ token });
+    const accessToken = generateAccessToken(payload);
+    const refreshToken = generateRefreshToken(payload);
+
+    await UserModel.saveRefreshToken(existingUser.id, refreshToken);
+
+    res.status(200).json({ accessToken, refreshToken });
   } catch (error) {
     console.error("Error in login controller:", error);
-    res.status(500).json({ message: "Internal Server Error", error });
+    res.status(500).json({ message: "Internal Server Error" });
   }
 };

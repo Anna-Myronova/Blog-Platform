@@ -12,10 +12,6 @@ export const pool = new Pool({
   database: process.env.DB_NAME,
 });
 
-console.log(process.env.DB_PASSWORD)
-console.log(process.env.DB_HOST)
-
-
 pool
   .query("SELECT NOW()")
   .then((res) => {

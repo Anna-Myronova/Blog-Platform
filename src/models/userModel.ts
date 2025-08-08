@@ -68,3 +68,18 @@ export const updateUser = async (
     throw err;
   }
 };
+
+export const saveRefreshToken = async (userId: number, token: string) => {
+  await pool.query("UPDATE users SET refresh_token = $1 WHERE id = $2", [
+    token,
+    userId,
+  ]);
+};
+
+export const getUserByRefreshToken = async (token: string) => {
+  const result = await pool.query(
+    "SELECT * FROM users WHERE refresh_token = $1",
+    [token]
+  );
+  return result.rows[0];
+};
